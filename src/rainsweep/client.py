@@ -3,16 +3,21 @@ from typing import List, Optional
 from raindropiopy.api import API
 from raindropiopy.models import Raindrop, CollectionRef
 
+
 class RaindropClient:
     """Client to interact with Raindrop.io API."""
-    
-    def __init__(self, token: Optional[str] = None, token_env_var: str = "RAINDROP_TOKEN"):
+
+    def __init__(
+        self, token: Optional[str] = None, token_env_var: str = "RAINDROP_TOKEN"
+    ):
         """Initialize the client with a token or from an environment variable."""
         if not token:
             token = os.environ.get(token_env_var)
-        
+
         if not token:
-            raise ValueError(f"Token not provided and environment variable '{token_env_var}' is not set.")
+            raise ValueError(
+                f"Token not provided and environment variable '{token_env_var}' is not set."
+            )
         self.api = API(token=token)
 
     def get_all_bookmarks(self) -> List[Raindrop]:
