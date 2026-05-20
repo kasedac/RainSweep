@@ -23,11 +23,11 @@ async def test_cleaner_dry_run(mock_client, mock_checker):
     # Setup mock bookmarks
     bookmark1 = MagicMock()
     bookmark1.link = "http://example.com/ok"
-    bookmark1._id = 1
+    bookmark1.id = 1
 
     bookmark2 = MagicMock()
     bookmark2.link = "http://example.com/broken"
-    bookmark2._id = 2
+    bookmark2.id = 2
 
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
 
@@ -53,11 +53,11 @@ async def test_cleaner_real_run(mock_client, mock_checker):
     # Setup mock bookmarks
     bookmark1 = MagicMock()
     bookmark1.link = "http://example.com/ok"
-    bookmark1._id = 1
+    bookmark1.id = 1
 
     bookmark2 = MagicMock()
     bookmark2.link = "http://example.com/broken"
-    bookmark2._id = 2
+    bookmark2.id = 2
 
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
 
@@ -84,11 +84,11 @@ async def test_cleaner_export(mock_client, mock_checker, tmp_path):
 
     bookmark1 = MagicMock()
     bookmark1.link = "http://example.com/ok"
-    bookmark1._id = 1
+    bookmark1.id = 1
 
     bookmark2 = MagicMock()
     bookmark2.link = "http://example.com/broken"
-    bookmark2._id = 2
+    bookmark2.id = 2
 
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
     mock_checker.is_broken.side_effect = [False, True]
