@@ -51,3 +51,10 @@ def test_move_to_trash(raindrop_client):
         mock_update.assert_called_once_with(
             raindrop_client.api, id=12345, collection=CollectionRef.Trash.id
         )
+
+
+def test_move_to_trash_batch(raindrop_client):
+    with patch("rainsweep.client.Raindrop.remove") as mock_remove:
+        ids = [123, 456]
+        raindrop_client.move_to_trash_batch(ids)
+        mock_remove.assert_called_once_with(raindrop_client.api, ids=ids)
