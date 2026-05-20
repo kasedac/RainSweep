@@ -49,6 +49,7 @@ This is the recommended way for safe cleaning.
 uv run rainsweep --dry-run --export broken_links.tsv
 
 # 2. Open broken_links.tsv in your editor and remove any lines you want to KEEP.
+   - **Note**: The ID in the file is Raindrop's internal bookmark ID. Please delete entire rows to keep specific bookmarks; modifying the ID numbers may cause unintended deletions.
 
 # 3. Import the edited file to move remaining links to Trash
 uv run rainsweep --import broken_links.tsv
