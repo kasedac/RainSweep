@@ -3,8 +3,11 @@ import asyncio
 
 
 class LinkChecker:
+    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
     async def is_broken(self, url: str) -> bool:
-        async with httpx.AsyncClient() as client:
+        headers = {"User-Agent": self.USER_AGENT}
+        async with httpx.AsyncClient(headers=headers) as client:
             for attempt in range(2):
                 try:
                     # Try HEAD first
