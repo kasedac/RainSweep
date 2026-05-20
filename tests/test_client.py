@@ -57,5 +57,6 @@ def test_move_to_trash_batch(raindrop_client):
     ids = [123, 456]
     raindrop_client.move_to_trash_batch(ids)
     raindrop_client.api.put.assert_called_once_with(
-        "raindrops/0", json={"ids": ids, "collection": {"$id": -99}}
+        "https://api.raindrop.io/rest/v1/raindrops/0",
+        json={"ids": ids, "collection": {"$id": -99}},
     )

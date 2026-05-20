@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 from raindropiopy.api import API
-from raindropiopy.models import Raindrop, CollectionRef
+from raindropiopy.models import Raindrop, CollectionRef, URL
 
 
 class RaindropClient:
@@ -40,4 +40,5 @@ class RaindropClient:
         """Move multiple bookmarks to the trash."""
         if not ids:
             return
-        self.api.put("raindrops/0", json={"ids": ids, "collection": {"$id": -99}})
+        url = URL.format(path="raindrops/0")
+        self.api.put(url, json={"ids": ids, "collection": {"$id": -99}})
