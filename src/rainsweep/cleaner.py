@@ -1,3 +1,4 @@
+import asyncio
 from .client import RaindropClient
 from .checker import LinkChecker
 
@@ -21,6 +22,7 @@ class Cleaner:
         self.results["total"] = total_bookmarks
         print(f"Found {total_bookmarks} bookmarks.")
 
+        broken_ids = []
         for i, bookmark in enumerate(bookmarks, 1):
             url = bookmark.link
             print(f"Checking {i}/{total_bookmarks}: {url}...", end="\r")
@@ -31,9 +33,17 @@ class Cleaner:
                 if self.dry_run:
                     print(f"\n[Dry-run] Broken: {url} (would be moved to trash)")
                 else:
-                    print(f"\nMoving broken bookmark to trash: {url}")
-                    self.client.move_to_trash(bookmark._id)
-                    self.results["moved"] += 1
+                    print(f"\nBroken bookmark found: {url}")
+                    broken_ids.append(bookmark._id)
+
+            # Rate limit mitigation: sleep between checks
+            if i < total_bookmarks:
+                await asyncio.sleep(0.5)
+
+        if not self.dry_run and broken_ids:
+            print(f"\nMoving {len(broken_ids)} broken bookmarks to trash...")
+            self.client.move_to_trash_batch(broken_ids)
+            self.results["moved"] = len(broken_ids)
 
         print("\n\nCleaning complete.")
         print(f"Total checked: {self.results['total']}")

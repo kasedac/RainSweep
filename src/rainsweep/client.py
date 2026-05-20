@@ -35,3 +35,9 @@ class RaindropClient:
     def move_to_trash(self, bookmark_id: int):
         """Move a bookmark to the trash (System collection -99)."""
         Raindrop.update(self.api, id=bookmark_id, collection=CollectionRef.Trash.id)
+
+    def move_to_trash_batch(self, ids: list[int]):
+        """Move multiple bookmarks to the trash."""
+        if not ids:
+            return
+        self.api.put("raindrops/0", json={"ids": ids, "collection": {"$id": -99}})

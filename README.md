@@ -9,6 +9,7 @@ It scans your bookmarks, checks if the links are still alive, and moves broken o
 - **Smart Check**: Uses `httpx` with a retry logic (waits 5s and retries once) to avoid false positives from temporary server issues.
 - **Dry-run Mode**: Preview which bookmarks will be moved without making any changes.
 - **Fast**: Performs link checks asynchronously.
+- **Rate Limit Mitigation**: Batch deletion and request pacing to stay within Raindrop.io API limits.
 - **Modern Stack**: Managed by `uv`, linted by `ruff`.
 
 ## Installation
