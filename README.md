@@ -6,18 +6,18 @@ It scans your bookmarks, checks if the links are still alive, and moves broken o
 ## Features
 
 - **Safe Cleaning**: Moves broken links to the Trash instead of permanent deletion.
-- **Smart Check**: Uses `httpx` with a retry logic (waits 5s and retries once) to avoid false positives from temporary server issues.
+- **Smart Check**: Uses `httpx` with a retry logic and **User-Agent spoofing** to avoid bot detection (fixes 403 Forbidden errors).
+- **Export/Import Workflow**: Export broken links to a file, review them, and import the list to perform bulk deletion.
 - **Dry-run Mode**: Preview which bookmarks will be moved without making any changes.
+- **Rate Limit Aware**: Respects Raindrop's API limits (120 req/min).
 - **Fast**: Performs link checks asynchronously.
-- **Rate Limit Mitigation**: Batch deletion and request pacing to stay within Raindrop.io API limits.
-- **Modern Stack**: Managed by `uv`, linted by `ruff`.
 
 ## Installation
 
 This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
 ```bash
-git clone https://github.com/your-username/RainSweep.git
+git clone https://github.com/kasedac/RainSweep.git
 cd RainSweep
 uv sync
 ```
@@ -26,43 +26,40 @@ uv sync
 
 ### 1. Set your Raindrop.io API Token
 
-You need to create a "Test Token" in your [Raindrop.io Integrations](https://app.raindrop.io/settings/integrations) settings.
-
 ```bash
 export RAINDROP_TOKEN="your_token_here"
 ```
 
-Alternatively, you can create a `.env` file (see `.env.example`).
-
-### 2. Run the tool
+### 2. Standard Workflow (Scan & Delete)
 
 ```bash
-# Dry-run (recommended first step)
-uv run python -m rainsweep.main --dry-run
+# Dry-run first to see what's broken
+uv run rainsweep --dry-run
 
-# Real-run (move broken links to Trash)
-uv run python -m rainsweep.main
+# Run and move to trash automatically
+uv run rainsweep
+```
+
+### 3. Advanced Workflow (Export, Review & Import)
+
+This is the recommended way for safe cleaning.
+
+```bash
+# 1. Scan and export broken links to a file (dry-run)
+uv run rainsweep --dry-run --export broken_links.tsv
+
+# 2. Open broken_links.tsv in your editor and remove any lines you want to KEEP.
+
+# 3. Import the edited file to move remaining links to Trash
+uv run rainsweep --import broken_links.tsv
 ```
 
 ## Options
 
 - `--dry-run`: Run without moving bookmarks to trash (only logging).
+- `--export FILE`: Export broken links (ID and URL) to a TSV file.
+- `--import FILE`: Read IDs from a file and move them to trash without checking links.
 - `--token TOKEN`: Overrides the `RAINDROP_TOKEN` environment variable.
-
-## Development
-
-Run tests with pytest:
-
-```bash
-uv run pytest
-```
-
-Format and lint with ruff:
-
-```bash
-uv run ruff check . --fix
-uv run ruff format .
-```
 
 ## License
 
