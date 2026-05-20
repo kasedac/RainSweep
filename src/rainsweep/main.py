@@ -21,6 +21,19 @@ def parse_args():
         type=str,
         help="Raindrop.io API token (overrides RAINDROP_TOKEN environment variable)",
     )
+    parser.add_argument(
+        "--export",
+        type=str,
+        metavar="FILE",
+        help="Export broken link IDs and URLs to a file",
+    )
+    parser.add_argument(
+        "--import",
+        dest="import_file",
+        type=str,
+        metavar="FILE",
+        help="Import broken link IDs from a file and move them to trash (skips checking)",
+    )
     return parser.parse_args()
 
 
@@ -31,9 +44,14 @@ async def amain():
     try:
         client = RaindropClient(token=args.token)
         checker = LinkChecker()
-        cleaner = Cleaner(client, checker, dry_run=args.dry_run)
+        cleaner = Cleaner(
+            client, checker, dry_run=args.dry_run, export_file=args.export
+        )
 
-        await cleaner.run()
+        if args.import_file:
+            await cleaner.run_import(args.import_file)
+        else:
+            await cleaner.run()
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
