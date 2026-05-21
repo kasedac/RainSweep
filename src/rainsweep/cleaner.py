@@ -33,14 +33,16 @@ class Cleaner:
             url = bookmark.link
             print(f"Checking {i}/{total_bookmarks}: {url}...", end="\r")
 
-            is_broken = await self.checker.is_broken(url)
+            is_broken, reason = await self.checker.is_broken(url)
             if is_broken:
                 self.results["broken"] += 1
                 broken_items.append((bookmark.id, url))
                 if self.dry_run:
-                    print(f"\n[Dry-run] Broken: {url} (would be moved to trash)")
+                    print(
+                        f"\n[Dry-run] Broken: {url} ({reason}) (would be moved to trash)"
+                    )
                 else:
-                    print(f"\nBroken bookmark found: {url}")
+                    print(f"\nBroken bookmark found: {url} ({reason})")
 
             # Rate limit mitigation: sleep between checks
             if i < total_bookmarks:

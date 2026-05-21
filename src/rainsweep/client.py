@@ -1,4 +1,5 @@
 import os
+import time
 from typing import List, Optional
 from raindropiopy.api import API
 from raindropiopy.models import Raindrop, CollectionRef, URL
@@ -25,7 +26,21 @@ class RaindropClient:
         page = 0
         all_bookmarks = []
         while True:
-            bookmarks = Raindrop._search_paged(self.api, page=page, perpage=50)
+            # Retry mechanism for search_paged
+            bookmarks = None
+            for attempt in range(3):
+                try:
+                    bookmarks = Raindrop._search_paged(self.api, page=page, perpage=50)
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        raise
+                    error_msg = str(e)
+                    if any(code in error_msg for code in ["502", "503", "504"]):
+                        time.sleep(2**attempt)
+                        continue
+                    raise
+
             if not bookmarks:
                 break
             all_bookmarks.extend(bookmarks)
@@ -41,4 +56,17 @@ class RaindropClient:
         if not ids:
             return
         url = URL.format(path="raindrops/0")
-        self.api.put(url, json={"ids": ids, "collection": {"$id": -99}})
+
+        # Retry mechanism for batch update
+        for attempt in range(3):
+            try:
+                self.api.put(url, json={"ids": ids, "collection": {"$id": -99}})
+                break
+            except Exception as e:
+                if attempt == 2:
+                    raise
+                error_msg = str(e)
+                if any(code in error_msg for code in ["502", "503", "504"]):
+                    time.sleep(2**attempt)
+                    continue
+                raise

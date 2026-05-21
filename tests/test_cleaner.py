@@ -32,7 +32,7 @@ async def test_cleaner_dry_run(mock_client, mock_checker):
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
 
     # Mock checker results
-    mock_checker.is_broken.side_effect = [False, True]
+    mock_checker.is_broken.side_effect = [(False, "OK"), (True, "Status 404")]
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         cleaner = Cleaner(mock_client, mock_checker, dry_run=True)
@@ -62,7 +62,7 @@ async def test_cleaner_real_run(mock_client, mock_checker):
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
 
     # Mock checker results
-    mock_checker.is_broken.side_effect = [False, True]
+    mock_checker.is_broken.side_effect = [(False, "OK"), (True, "Status 404")]
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         cleaner = Cleaner(mock_client, mock_checker, dry_run=False)
@@ -91,7 +91,7 @@ async def test_cleaner_export(mock_client, mock_checker, tmp_path):
     bookmark2.id = 2
 
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
-    mock_checker.is_broken.side_effect = [False, True]
+    mock_checker.is_broken.side_effect = [(False, "OK"), (True, "Status 404")]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         cleaner = Cleaner(
