@@ -37,7 +37,7 @@ class LinkChecker:
                         response = await client.head(
                             url, headers=current_headers, follow_redirects=True
                         )
-                    except asyncio.TimeoutError, httpx.TimeoutException:
+                    except (asyncio.TimeoutError, httpx.TimeoutException):
                         # If HEAD timeouts, try GET immediately
                         response = await client.get(
                             url, headers=current_headers, follow_redirects=True
@@ -103,14 +103,14 @@ class LinkChecker:
 
                     last_reason = f"Status {response.status_code}"
 
-            except (httpx.ConnectError, httpx.SSLContextError) as e:
+            except httpx.ConnectError as e:
                 if verify_ssl:
                     print(f"\n[SSL Error] {url}: {e}. Retrying without verification...")
                     verify_ssl = False
                     # Retry immediately without verification, don't increment attempt
                     continue
                 last_reason = f"SSL Error: {type(e).__name__}"
-            except asyncio.TimeoutError, httpx.TimeoutException:
+            except (asyncio.TimeoutError, httpx.TimeoutException):
                 last_reason = "Timeout"
             except httpx.HTTPError as e:
                 last_reason = f"HTTP Error: {type(e).__name__}"
