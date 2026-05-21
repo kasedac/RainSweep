@@ -1,22 +1,22 @@
 import pytest
 import respx
 from httpx import Response
-from rainsweep.checker import LinkChecker
+from rainsweep.checker import LinkChecker, LinkStatus
 
 
 @pytest.mark.asyncio
-async def test_is_broken_returns_false_for_successful_link():
+async def test_check_link_returns_alive_for_successful_link():
     url = "https://example.com"
     async with respx.mock:
         respx.head(url).mock(return_value=Response(200))
         checker = LinkChecker()
-        is_broken, reason = await checker.is_broken(url)
-        assert is_broken is False
+        status, reason = await checker.check_link(url)
+        assert status == LinkStatus.ALIVE
         assert reason == "OK"
 
 
 @pytest.mark.asyncio
-async def test_is_broken_retries_once_and_returns_false_if_second_attempt_succeeds(
+async def test_check_link_retries_once_and_returns_alive_if_second_attempt_succeeds(
     mocker,
 ):
     url = "https://example.com"
@@ -33,9 +33,9 @@ async def test_is_broken_retries_once_and_returns_false_if_second_attempt_succee
         get_route.side_effect = [Response(500), Response(200)]
 
         checker = LinkChecker()
-        is_broken, reason = await checker.is_broken(url)
+        status, reason = await checker.check_link(url)
 
-        assert is_broken is False
+        assert status == LinkStatus.ALIVE
         assert reason == "OK"
         # Since HEAD 500 doesn't trigger adaptive UA, we have 2 attempts
         assert head_route.call_count == 2
@@ -43,26 +43,41 @@ async def test_is_broken_retries_once_and_returns_false_if_second_attempt_succee
 
 
 @pytest.mark.asyncio
-async def test_is_broken_returns_true_if_all_attempts_fail(mocker):
+async def test_check_link_returns_broken_for_404(mocker):
     url = "https://example.com"
     mocker.patch("asyncio.sleep", return_value=None)
 
     async with respx.mock:
-        # All 3 attempts fail (max_attempts = 3)
-        head_route = respx.head(url).mock(return_value=Response(500))
-        get_route = respx.get(url).mock(return_value=Response(500))
+        respx.head(url).mock(return_value=Response(404))
+        # No need for GET if 404 (actually my implementation tries GET if not 200)
+        respx.get(url).mock(return_value=Response(404))
 
         checker = LinkChecker()
-        is_broken, reason = await checker.is_broken(url)
+        status, reason = await checker.check_link(url)
 
-        assert is_broken is True
-        assert "Status 500" in reason
-        assert head_route.call_count == 3
-        assert get_route.call_count == 3
+        assert status == LinkStatus.BROKEN
+        assert "Status 404" in reason
 
 
 @pytest.mark.asyncio
-async def test_is_broken_handles_429_with_longer_sleep(mocker):
+async def test_check_link_returns_warning_for_500_after_retries(mocker):
+    url = "https://example.com"
+    mocker.patch("asyncio.sleep", return_value=None)
+
+    async with respx.mock:
+        # All 3 attempts fail with 500
+        respx.head(url).mock(return_value=Response(500))
+        respx.get(url).mock(return_value=Response(500))
+
+        checker = LinkChecker()
+        status, reason = await checker.check_link(url)
+
+        assert status == LinkStatus.WARNING
+        assert "Status 500" in reason
+
+
+@pytest.mark.asyncio
+async def test_check_link_handles_429_with_longer_sleep(mocker):
     url = "https://example.com"
     sleep_mock = mocker.patch("asyncio.sleep", return_value=None)
 
@@ -82,9 +97,9 @@ async def test_is_broken_handles_429_with_longer_sleep(mocker):
         ]
 
         checker = LinkChecker()
-        is_broken, reason = await checker.is_broken(url)
+        status, reason = await checker.check_link(url)
 
-        assert is_broken is False
+        assert status == LinkStatus.ALIVE
         assert reason == "OK"
         assert head_route.call_count == 3
         # Should have slept 5s after both UA retries failed with 429
@@ -92,7 +107,7 @@ async def test_is_broken_handles_429_with_longer_sleep(mocker):
 
 
 @pytest.mark.asyncio
-async def test_is_broken_hatena_behavior_fallback_to_default_ua(mocker):
+async def test_check_link_hatena_behavior_fallback_to_default_ua(mocker):
     url = "https://hatena.blog/user/entry"
     mocker.patch("asyncio.sleep", return_value=None)
 
@@ -109,14 +124,14 @@ async def test_is_broken_hatena_behavior_fallback_to_default_ua(mocker):
         respx.head(url).side_effect = hatena_side_effect
 
         checker = LinkChecker()
-        is_broken, reason = await checker.is_broken(url)
+        status, reason = await checker.check_link(url)
 
-        assert is_broken is False
+        assert status == LinkStatus.ALIVE
         assert reason == "OK"
 
 
 @pytest.mark.asyncio
-async def test_is_broken_wikipedia_behavior_chrome_ua_succeeds(mocker):
+async def test_check_link_wikipedia_behavior_chrome_ua_succeeds(mocker):
     url = "https://wikipedia.org/wiki/Main_Page"
     mocker.patch("asyncio.sleep", return_value=None)
 
@@ -134,7 +149,7 @@ async def test_is_broken_wikipedia_behavior_chrome_ua_succeeds(mocker):
 
         checker = LinkChecker()
         # Ensure we start with browser headers
-        is_broken, reason = await checker.is_broken(url)
+        status, reason = await checker.check_link(url)
 
-        assert is_broken is False
+        assert status == LinkStatus.ALIVE
         assert reason == "OK"
