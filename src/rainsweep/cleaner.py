@@ -1,4 +1,5 @@
 import asyncio
+import random
 from .client import RaindropClient
 from .checker import LinkChecker
 
@@ -43,7 +44,7 @@ class Cleaner:
 
             # Rate limit mitigation: sleep between checks
             if i < total_bookmarks:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.5 + random.uniform(0, 1.0))
 
         if self.export_file:
             print(

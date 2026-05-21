@@ -6,7 +6,8 @@ It scans your bookmarks, checks if the links are still alive, and moves broken o
 ## Features
 
 - **Safe Cleaning**: Moves broken links to the Trash instead of permanent deletion.
-- **Smart Check**: Uses `httpx` with a retry logic and **User-Agent spoofing** to avoid bot detection (fixes 403 Forbidden errors).
+- **Smart Check**: Uses `httpx` with a retry logic, **429 (Too Many Requests) handling**, and **User-Agent spoofing** to avoid bot detection and rate limits.
+- **Randomized Jitter**: Introduces random delays between link checks to avoid site-specific rate limiting and detection.
 - **Export/Import Workflow**: Export broken links to a file, review them, and import the list to perform bulk deletion.
 - **Dry-run Mode**: Preview which bookmarks will be moved without making any changes.
 - **Rate Limit Aware**: Respects Raindrop's API limits (120 req/min).

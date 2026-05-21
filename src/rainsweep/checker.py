@@ -8,7 +8,8 @@ class LinkChecker:
     async def is_broken(self, url: str) -> bool:
         headers = {"User-Agent": self.USER_AGENT}
         async with httpx.AsyncClient(headers=headers) as client:
-            for attempt in range(2):
+            max_attempts = 3
+            for attempt in range(max_attempts):
                 try:
                     # Try HEAD first
                     response = await client.head(url, follow_redirects=True)
@@ -19,10 +20,16 @@ class LinkChecker:
 
                     if response.status_code == 200:
                         return False
+
+                    # Handle 429 Too Many Requests
+                    if response.status_code == 429:
+                        if attempt < max_attempts - 1:
+                            await asyncio.sleep(10)
+                            continue
                 except httpx.HTTPError:
                     pass
 
-                if attempt == 0:
+                if attempt < max_attempts - 1:
                     await asyncio.sleep(5)
 
             return True
