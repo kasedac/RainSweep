@@ -2,6 +2,7 @@ import asyncio
 import random
 from .client import RaindropClient
 from .checker import LinkChecker, LinkStatus
+from .history import HistoryManager
 
 
 class Cleaner:
@@ -13,11 +14,13 @@ class Cleaner:
         checker: LinkChecker,
         dry_run: bool = False,
         export_file: str = None,
+        history_manager: HistoryManager = None,
     ):
         self.client = client
         self.checker = checker
         self.dry_run = dry_run
         self.export_file = export_file
+        self.history_manager = history_manager or HistoryManager()
         self.results = {"total": 0, "broken": 0, "warning": 0, "moved": 0}
 
     async def run(self):
@@ -34,8 +37,15 @@ class Cleaner:
             url = bookmark.link
             print(f"Checking {i}/{total_bookmarks}: {url}...", end="\r")
 
-            status, reason = await self.checker.check_link(url)
-            if status == LinkStatus.BROKEN:
+            preferred_ua = self.history_manager.get_preferred_ua(url)
+            status, reason, worked_ua = await self.checker.check_link(
+                url, preferred_ua=preferred_ua
+            )
+
+            if status == LinkStatus.ALIVE:
+                if worked_ua:
+                    self.history_manager.update_domain_rule(url, worked_ua)
+            elif status == LinkStatus.BROKEN:
                 self.results["broken"] += 1
                 broken_ids.append(bookmark.id)
                 to_export.append((bookmark.id, url))
@@ -54,6 +64,9 @@ class Cleaner:
             # Rate limit mitigation: sleep between checks
             if i < total_bookmarks:
                 await asyncio.sleep(0.5 + random.uniform(0, 1.0))
+
+        # Save learned rules
+        self.history_manager.save()
 
         if self.export_file:
             print(f"\nExporting {len(to_export)} items to {self.export_file}...")

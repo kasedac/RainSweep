@@ -33,8 +33,8 @@ async def test_cleaner_dry_run(mock_client, mock_checker):
 
     # Mock checker results
     mock_checker.check_link.side_effect = [
-        (LinkStatus.ALIVE, "OK"),
-        (LinkStatus.BROKEN, "Status 404"),
+        (LinkStatus.ALIVE, "OK", "browser"),
+        (LinkStatus.BROKEN, "Status 404", None),
     ]
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
@@ -67,8 +67,8 @@ async def test_cleaner_real_run(mock_client, mock_checker):
 
     # Mock checker results
     mock_checker.check_link.side_effect = [
-        (LinkStatus.ALIVE, "OK"),
-        (LinkStatus.BROKEN, "Status 404"),
+        (LinkStatus.ALIVE, "OK", "browser"),
+        (LinkStatus.BROKEN, "Status 404", None),
     ]
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
@@ -86,6 +86,31 @@ async def test_cleaner_real_run(mock_client, mock_checker):
 
 
 @pytest.mark.asyncio
+async def test_cleaner_with_learning(mock_client, mock_checker, tmp_path):
+    history_file = tmp_path / "learned_history.json"
+    from rainsweep.history import HistoryManager
+    hm = HistoryManager(history_file=str(history_file))
+    
+    bookmark = MagicMock()
+    bookmark.link = "https://hatena.ne.jp/test"
+    bookmark.id = 1
+    mock_client.get_all_bookmarks.return_value = [bookmark]
+
+    # Mock checker: succeeds with "default" UA
+    mock_checker.check_link.return_value = (LinkStatus.ALIVE, "OK", "default")
+
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        cleaner = Cleaner(mock_client, mock_checker, history_manager=hm)
+        await cleaner.run()
+
+    # Rule should be saved to history file
+    assert history_file.exists()
+    content = history_file.read_text()
+    assert "hatena.ne.jp" in content
+    assert "default" in content
+
+
+@pytest.mark.asyncio
 async def test_cleaner_with_warning(mock_client, mock_checker, tmp_path):
     # Setup mock bookmarks
     bookmark1 = MagicMock()
@@ -100,8 +125,8 @@ async def test_cleaner_with_warning(mock_client, mock_checker, tmp_path):
 
     # Mock checker results
     mock_checker.check_link.side_effect = [
-        (LinkStatus.ALIVE, "OK"),
-        (LinkStatus.WARNING, "Status 403"),
+        (LinkStatus.ALIVE, "OK", "browser"),
+        (LinkStatus.WARNING, "Status 403", None),
     ]
 
     export_file = tmp_path / "warning_export.tsv"
@@ -139,8 +164,8 @@ async def test_cleaner_export(mock_client, mock_checker, tmp_path):
 
     mock_client.get_all_bookmarks.return_value = [bookmark1, bookmark2]
     mock_checker.check_link.side_effect = [
-        (LinkStatus.ALIVE, "OK"),
-        (LinkStatus.BROKEN, "Status 404"),
+        (LinkStatus.ALIVE, "OK", "browser"),
+        (LinkStatus.BROKEN, "Status 404", None),
     ]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
