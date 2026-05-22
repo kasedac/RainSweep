@@ -50,14 +50,23 @@ class RaindropClient:
     def get_bookmark(self, bookmark_id: int) -> Optional[Raindrop]:
         """Fetch a single bookmark by ID."""
         # Retry mechanism for get
+        # Note: We don't use Raindrop.get(self.api, id=bookmark_id) because it
+        # uses an incorrect API endpoint in some versions of the library.
         for attempt in range(3):
             try:
-                return Raindrop.get(self.api, id=bookmark_id)
+                url = URL.format(path=f"raindrop/{bookmark_id}")
+                resp = self.api.get(url)
+                if resp.status_code == 200:
+                    item_data = resp.json()["item"]
+                    return Raindrop(**item_data)
+                resp.raise_for_status()
             except Exception as e:
                 if attempt == 2:
                     raise
                 error_msg = str(e)
                 if any(code in error_msg for code in ["502", "503", "504"]):
+                    import time
+
                     time.sleep(2**attempt)
                     continue
                 raise

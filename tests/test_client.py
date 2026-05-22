@@ -54,14 +54,20 @@ def test_move_to_trash(raindrop_client):
 
 
 def test_get_bookmark(raindrop_client):
-    with patch("rainsweep.client.Raindrop.get") as mock_get:
-        mock_bookmark = MagicMock()
-        mock_get.return_value = mock_bookmark
-        
-        bookmark = raindrop_client.get_bookmark(12345)
-        
-        assert bookmark == mock_bookmark
-        mock_get.assert_called_once_with(raindrop_client.api, id=12345)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    # Raindrop model uses _id internally from the JSON response
+    mock_response.json.return_value = {
+        "item": {"_id": 12345, "link": "http://example.com"}
+    }
+    raindrop_client.api.get.return_value = mock_response
+
+    bookmark = raindrop_client.get_bookmark(12345)
+
+    assert bookmark is not None
+    assert bookmark.id == 12345
+    assert str(bookmark.link) == "http://example.com"
+    raindrop_client.api.get.assert_called_once()
 
 
 def test_move_to_trash_batch(raindrop_client):
