@@ -195,3 +195,33 @@ async def test_cleaner_import_skips_warning(mock_client, mock_checker, tmp_path)
 
     # Should skip ID 20 because of [WARNING]
     mock_client.move_to_trash_batch.assert_called_once_with([10, 30])
+
+
+@pytest.mark.asyncio
+async def test_cleaner_run_recheck(mock_client, mock_checker, tmp_path):
+    recheck_file = tmp_path / "recheck.tsv"
+    recheck_file.write_text("123\thttp://example.com/check1\n456\thttp://example.com/check2\n")
+
+    bookmark1 = MagicMock()
+    bookmark1.link = "http://example.com/check1"
+    bookmark1.id = 123
+    
+    bookmark2 = MagicMock()
+    bookmark2.link = "http://example.com/check2"
+    bookmark2.id = 456
+
+    mock_client.get_bookmark.side_effect = [bookmark1, bookmark2]
+    mock_checker.check_link.side_effect = [
+        (LinkStatus.ALIVE, "OK", "browser"),
+        (LinkStatus.BROKEN, "Status 404", None),
+    ]
+
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        cleaner = Cleaner(mock_client, mock_checker)
+        await cleaner.run_recheck(str(recheck_file))
+
+    summary = cleaner.get_summary()
+    assert summary["total"] == 2
+    assert summary["broken"] == 1
+    assert summary["moved"] == 1
+    mock_client.move_to_trash_batch.assert_called_once_with([456])

@@ -53,6 +53,17 @@ def test_move_to_trash(raindrop_client):
         )
 
 
+def test_get_bookmark(raindrop_client):
+    with patch("rainsweep.client.Raindrop.get") as mock_get:
+        mock_bookmark = MagicMock()
+        mock_get.return_value = mock_bookmark
+        
+        bookmark = raindrop_client.get_bookmark(12345)
+        
+        assert bookmark == mock_bookmark
+        mock_get.assert_called_once_with(raindrop_client.api, id=12345)
+
+
 def test_move_to_trash_batch(raindrop_client):
     ids = [123, 456]
     raindrop_client.move_to_trash_batch(ids)

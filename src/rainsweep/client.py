@@ -47,6 +47,22 @@ class RaindropClient:
             page += 1
         return all_bookmarks
 
+    def get_bookmark(self, bookmark_id: int) -> Optional[Raindrop]:
+        """Fetch a single bookmark by ID."""
+        # Retry mechanism for get
+        for attempt in range(3):
+            try:
+                return Raindrop.get(self.api, id=bookmark_id)
+            except Exception as e:
+                if attempt == 2:
+                    raise
+                error_msg = str(e)
+                if any(code in error_msg for code in ["502", "503", "504"]):
+                    time.sleep(2**attempt)
+                    continue
+                raise
+        return None
+
     def move_to_trash(self, bookmark_id: int):
         """Move a bookmark to the trash (System collection -99)."""
         Raindrop.update(self.api, id=bookmark_id, collection=CollectionRef.Trash.id)

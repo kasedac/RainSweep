@@ -14,7 +14,7 @@ class LinkChecker:
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
     async def check_link(
-        self, url: str, preferred_ua: str = None
+        self, url: str, preferred_ua: str = None, on_429: callable = None
     ) -> Tuple[LinkStatus, str, str | None]:
         browser_headers = {
             "User-Agent": self.USER_AGENT,
@@ -26,6 +26,7 @@ class LinkChecker:
 
         max_attempts = 3
         base_delay = 5
+        global_backoff_duration = 30.0
         last_reason = "Unknown"
         verify_ssl = True
         attempt = 0
@@ -54,6 +55,9 @@ class LinkChecker:
 
                     # 429 logic: If we hit 429, we MUST wait before any retry.
                     if response.status_code == 429:
+                        if on_429:
+                            on_429(global_backoff_duration)
+
                         delay = base_delay * (2**attempt)
                         print(
                             f"\n[429] Rate limited for {url}. Waiting {delay}s before retry..."
@@ -88,6 +92,9 @@ class LinkChecker:
                         )
 
                         if response.status_code == 429:
+                            if on_429:
+                                on_429(global_backoff_duration)
+
                             delay = base_delay * (2**attempt)
                             print(
                                 f"\n[429] Rate limited for {url} (GET). Waiting {delay}s before retry..."

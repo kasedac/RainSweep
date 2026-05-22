@@ -34,6 +34,12 @@ def parse_args():
         metavar="FILE",
         help="Import broken link IDs from a file and move them to trash (skips checking)",
     )
+    parser.add_argument(
+        "--recheck",
+        type=str,
+        metavar="FILE",
+        help="Re-check bookmarks listed in a file (IDs and URLs) and move only confirmed broken ones to trash",
+    )
     return parser.parse_args()
 
 
@@ -50,6 +56,8 @@ async def amain():
 
         if args.import_file:
             await cleaner.run_import(args.import_file)
+        elif args.recheck:
+            await cleaner.run_recheck(args.recheck)
         else:
             await cleaner.run()
     except Exception as e:

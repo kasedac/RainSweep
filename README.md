@@ -1,17 +1,18 @@
 # RainSweep 🧹
 
 RainSweep is a CLI tool to clean up broken bookmarks from your [Raindrop.io](https://raindrop.io/) account.
-It scans your bookmarks, checks if the links are still alive, and moves broken ones (the ones with the "hanger" icon) to the Trash.
+It scans your bookmarks, checks if the links are still alive, and moves broken ones to the Trash.
 
 ## Features
 
 - **Safe Cleaning**: Moves broken links to the Trash instead of permanent deletion.
-- **Smart Check**: Uses `httpx` with a retry logic, **429 (Too Many Requests) handling**, and **User-Agent spoofing** to avoid bot detection and rate limits.
-- **Randomized Jitter**: Introduces random delays between link checks to avoid site-specific rate limiting and detection.
+- **Ultra-Safe Mode (Automatic)**:
+  - **Domain-Specific Serialization**: Requests to the same domain (including subdomains like Hatena Blog) are executed sequentially with cooldowns to avoid rate limiting.
+  - **Global Backoff**: If a `429 Too Many Requests` is detected, the tool automatically pauses all operations for 30 seconds to allow the site's limit to reset.
+- **Adaptive UA Learning**: Learns which User-Agent (Browser vs. Default) works best for each domain.
+- **Smart Check**: Uses `httpx` with exponential backoff and SSL/Timeout fallbacks.
 - **Export/Import Workflow**: Export broken links to a file, review them, and import the list to perform bulk deletion.
-- **Dry-run Mode**: Preview which bookmarks will be moved without making any changes.
-- **Rate Limit Aware**: Respects Raindrop's API limits (120 req/min).
-- **Fast**: Performs link checks asynchronously.
+- **Recheck Mode**: Efficiently re-verify specific bookmarks from an exported file without scanning everything.
 
 ## Installation
 
@@ -35,32 +36,28 @@ export RAINDROP_TOKEN="your_token_here"
 
 ```bash
 # Dry-run first to see what's broken
-uv run rainsweep --dry-run
-
-# Run and move to trash automatically
-uv run rainsweep
+uv run rainsweep --dry-run --export broken.tsv
 ```
 
-### 3. Advanced Workflow (Export, Review & Import)
-
-This is the recommended way for safe cleaning.
+### 3. Verification Workflow (Recommended)
 
 ```bash
-# 1. Scan and export broken links to a file (dry-run)
-uv run rainsweep --dry-run --export broken_links.tsv
+# 1. Perform initial scan
+uv run rainsweep --dry-run --export all_results.tsv
 
-# 2. Open broken_links.tsv in your editor and remove any lines you want to KEEP.
-   - **Note**: The ID in the file is Raindrop's internal bookmark ID. Please delete entire rows to keep specific bookmarks; modifying the ID numbers may cause unintended deletions.
+# 2. Re-verify only specific entries (e.g., Hatena Blog items) from the list
+uv run rainsweep --recheck all_results.tsv
 
-# 3. Import the edited file to move remaining links to Trash
-uv run rainsweep --import broken_links.tsv
+# 3. Once confirmed, import to delete
+uv run rainsweep --import all_results.tsv
 ```
 
 ## Options
 
-- `--dry-run`: Run without moving bookmarks to trash (only logging).
-- `--export FILE`: Export broken links (ID and URL) to a TSV file.
-- `--import FILE`: Read IDs from a file and move them to trash without checking links.
+- `--dry-run`: Run without moving bookmarks to trash.
+- `--export FILE`: Export detected links to a TSV file.
+- `--import FILE`: Bulk move IDs from a file to trash (skips link checks, ignores `[WARNING]`).
+- `--recheck FILE`: Read IDs from a file and perform link checks only for those items.
 - `--token TOKEN`: Overrides the `RAINDROP_TOKEN` environment variable.
 
 ## License
